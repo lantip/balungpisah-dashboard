@@ -5,10 +5,10 @@ services:
       dockerfile: Dockerfile
     container_name: balungpisah-dashboard
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://core.balungpisah.id
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
     restart: always
 
 networks:

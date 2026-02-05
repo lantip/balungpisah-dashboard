@@ -1,10 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { TrendingUp } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import { CategoryReportSummary } from '@/lib/types';
 import { formatNumber } from '@/lib/utils';
+
+// Map your API icon names to Font Awesome classes
+const iconMap: Record<string, string> = {
+  people: 'fa-users',
+  briefcase: 'fa-briefcase',
+  shield: 'fa-shield-halved',
+  school: 'fa-school',
+  road: 'fa-road',
+  hospital: 'fa-hospital',
+  tree: 'fa-tree',
+  water: 'fa-water',
+  bolt: 'fa-bolt',
+  droplet: 'fa-droplet',
+  'road-damage': 'fa-road-barrier',
+  other: 'fa-circle-question',
+};
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryReportSummary[]>([]);
@@ -42,30 +57,35 @@ export default function CategoriesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => (
-            <div key={category.id} className="card hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                {category.icon && (
+          {categories.map((category) => {
+            const faIcon = category.icon ? iconMap[category.icon] || 'fa-circle-question' : 'fa-circle-question';
+            
+            return (
+              <div key={category.id} className="card hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between mb-4">
                   <div
-                    className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                    className="w-12 h-12 rounded-lg flex items-center justify-center"
                     style={{ backgroundColor: category.color + '20' || '#e5e7eb' }}
                   >
-                    {category.icon}
+                    <i 
+                      className={`fa-solid ${faIcon} text-2xl`}
+                      style={{ color: category.color || '#6b7280' }}
+                    ></i>
                   </div>
-                )}
-                <div className="text-right">
-                  <p className="text-3xl font-bold text-gray-900">
-                    {formatNumber(category.report_count)}
-                  </p>
-                  <p className="text-sm text-gray-500">reports</p>
+                  <div className="text-right">
+                    <p className="text-3xl font-bold text-gray-900">
+                      {formatNumber(category.report_count)}
+                    </p>
+                    <p className="text-sm text-gray-500">reports</p>
+                  </div>
                 </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{category.name}</h3>
+                {category.description && (
+                  <p className="text-sm text-gray-600">{category.description}</p>
+                )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{category.name}</h3>
-              {category.description && (
-                <p className="text-sm text-gray-600">{category.description}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
