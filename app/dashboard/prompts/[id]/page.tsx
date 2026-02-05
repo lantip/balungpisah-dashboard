@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { PromptResponseDto } from '@/lib/types';
+import { PromptKeyDefinition, PromptResponseDto } from '@/lib/types';
 import {
   formatDateTime,
   formatRelativeTime,
@@ -23,12 +23,25 @@ export default function PromptDetailPage() {
   const [description, setDescription] = useState('');
   const [templateContent, setTemplateContent] = useState('');
   const [variablesJson, setVariablesJson] = useState('');
+  const [keyDefinition, setKeyDefinition] = useState<PromptKeyDefinition | null>(null);
 
   useEffect(() => {
     if (params.id) {
       loadPrompt(params.id as string);
     }
   }, [params.id]);
+
+  const loadKeyDefinition = async (promptKey: string) => {
+    try {
+      const response = await apiClient.getPromptKeys();
+      if (response.success && response.data) {
+        const def = response.data.find((k) => k.key === promptKey);
+        setKeyDefinition(def || null);
+      }
+    } catch (error) {
+      console.error('Failed to load prompt keys:', error);
+    }
+  };
 
   const loadPrompt = async (id: string) => {
     try {
@@ -42,6 +55,7 @@ export default function PromptDetailPage() {
         setDescription(data.description || '');
         setTemplateContent(data.template_content);
         setVariablesJson(data.variables ? JSON.stringify(data.variables, null, 2) : '');
+        loadKeyDefinition(data.key);
       }
     } catch (error) {
       console.error('Failed to load prompt:', error);
@@ -212,6 +226,9 @@ export default function PromptDetailPage() {
               <div>
                 <p className="mb-1 text-gray-500">Key</p>
                 <p className="font-mono text-sm text-gray-900">{prompt.key}</p>
+                {keyDefinition && (
+                  <p className="mt-1 text-xs text-gray-500">{keyDefinition.description}</p>
+                )}
               </div>
               <div>
                 <p className="mb-1 text-gray-500">Status</p>

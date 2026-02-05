@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, Eye, Trash2, Plus, X, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { PromptResponseDto } from '@/lib/types';
+import { PromptKeyDefinition, PromptResponseDto } from '@/lib/types';
 import { formatDate, formatNumber, getPromptStatusColor, getPromptStatusLabel } from '@/lib/utils';
 
 export default function PromptsPage() {
@@ -16,6 +16,10 @@ export default function PromptsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('true');
   const pageSize = 20;
+
+  // Prompt keys from backend
+  const [promptKeys, setPromptKeys] = useState<PromptKeyDefinition[]>([]);
+  const [loadingKeys, setLoadingKeys] = useState(false);
 
   // Create modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -61,21 +65,36 @@ export default function PromptsPage() {
     loadPrompts();
   }, [loadPrompts]);
 
+  const loadPromptKeys = async () => {
+    try {
+      setLoadingKeys(true);
+      const response = await apiClient.getPromptKeys();
+      if (response.success && response.data) {
+        setPromptKeys(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load prompt keys:', error);
+    } finally {
+      setLoadingKeys(false);
+    }
+  };
+
+  const openCreateModal = () => {
+    loadPromptKeys();
+    setShowCreateModal(true);
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
     loadPrompts();
   };
 
-  const PROMPT_KEY_REGEX = /^[a-z][a-z0-9_]*\/[a-z][a-z0-9_]*$/;
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!PROMPT_KEY_REGEX.test(createForm.key)) {
-      alert(
-        'Invalid key format. Use lowercase letters, numbers, and underscores separated by a slash.\nExample: citizen_report_agent/system'
-      );
+    if (!createForm.key) {
+      alert('Please select a prompt key');
       return;
     }
 
@@ -158,10 +177,7 @@ export default function PromptsPage() {
             Manage prompt templates ({formatNumber(totalItems)} total)
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center gap-2"
-        >
+        <button onClick={openCreateModal} className="btn-primary flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Create Prompt
         </button>
@@ -334,22 +350,51 @@ export default function PromptsPage() {
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">Key</label>
-                <input
-                  type="text"
-                  value={createForm.key}
-                  onChange={(e) =>
-                    setCreateForm({ ...createForm, key: e.target.value.toLowerCase() })
-                  }
-                  className="input font-mono text-sm"
-                  placeholder="e.g. citizen_report_agent/system"
-                  pattern="^[a-z][a-z0-9_]*\/[a-z][a-z0-9_]*$"
-                  title="Format: agent_name/role (lowercase, underscores, e.g. citizen_report_agent/system)"
-                  required
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Format: agent_name/role (e.g. citizen_report_agent/system,
-                  citizen_report_agent/user)
-                </p>
+                {loadingKeys ? (
+                  <div className="flex items-center gap-2 py-2 text-sm text-gray-500">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-600 border-t-transparent"></div>
+                    Loading keys...
+                  </div>
+                ) : (
+                  <select
+                    value={createForm.key}
+                    onChange={(e) => {
+                      const selectedKey = e.target.value;
+                      const keyDef = promptKeys.find((k) => k.key === selectedKey);
+                      const defaultName = selectedKey
+                        ? selectedKey
+                            .split('/')
+                            .map((part) =>
+                              part
+                                .split('_')
+                                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                                .join(' ')
+                            )
+                            .join(' - ')
+                        : '';
+                      setCreateForm({
+                        ...createForm,
+                        key: selectedKey,
+                        name: defaultName,
+                        description: keyDef?.description || '',
+                      });
+                    }}
+                    className="input font-mono text-sm"
+                    required
+                  >
+                    <option value="">Select a prompt key...</option>
+                    {promptKeys.map((keyDef) => (
+                      <option key={keyDef.key} value={keyDef.key}>
+                        {keyDef.key}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {createForm.key && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    {promptKeys.find((k) => k.key === createForm.key)?.description}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-gray-700">Name</label>
@@ -358,7 +403,7 @@ export default function PromptsPage() {
                   value={createForm.name}
                   onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
                   className="input"
-                  placeholder="e.g. Citizen Report Agent - System Prompt"
+                  placeholder="e.g. Citizen Report Agent - System"
                   required
                 />
               </div>

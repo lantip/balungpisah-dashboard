@@ -349,4 +349,9 @@ export interface UpdatePromptDto {
   variables?: Record<string, unknown>;
 }
 
+export interface PromptKeyDefinition {
+  key: string;
+  description: string;
+}
+
 export type SortDirection = 'asc' | 'desc';

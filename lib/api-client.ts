@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { CreatePromptDto, UpdatePromptDto } from './types';
+import { CreatePromptDto, PromptKeyDefinition, UpdatePromptDto } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -312,6 +312,11 @@ class ApiClient {
         is_active: filters?.isActive,
       },
     });
+    return response.data;
+  }
+
+  async getPromptKeys(): Promise<{ success: boolean; data?: PromptKeyDefinition[] }> {
+    const response = await this.client.get('/api/admin/prompts/keys');
     return response.data;
   }
 
